@@ -1,7 +1,7 @@
 import './App.css';
 
 import { useState, useEffect } from 'react';
-import { BsTrash, BsBookmarkCheck, BsBookmarkCheFill } from 'react-icons/bs';
+import { BsTrash, BsBookmarkCheck, BsBookmarkCheckFill, BsBookmarkFill } from 'react-icons/bs';
 
 const API = "http://localhost:5000"
 function App() {
@@ -11,8 +11,24 @@ function App() {
   const [loading, setLoading] = useState(false);
 
   //Load todos on page load
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
 
+      const res = await fetch(API + "/todos")
+        .then(res => res.json())
+        .then(data => data)
+        .catch(err => console.log(err));
 
+      setLoading(false);
+
+      setTodos(res);
+    }
+
+    loadData();
+  }, [])
+
+  //Adiciona uma tarefa
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -31,12 +47,47 @@ function App() {
         "Content-Type": "application/json",
       },
     });
+    //inserir automaticamente o elemento adicionado na lista de tarefas
+    setTodos(prevState => [...prevState, todo]);
 
     console.log(todo);
     setTitle("");
     setTime("");
 
     console.log("Enviando Dados...")
+
+  }
+
+  //Função editar tarefas
+  const handleEdit = async (todo) => {
+    todo.done = !todo.done;
+    console.log("Todo")
+
+    const data = await fetch(API + "/todos/" + todo.id, {
+      method: "PUT",
+      body: JSON.stringify(todo),
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+
+    })
+
+    setTodos(prevState =>
+      prevState.map(t => t.id === data.id ? (t = data) : t))
+  }
+
+
+  //Função para eliminar tarefas
+  const handleDelete = async (id) => {
+    await fetch(API + "/todos/" + id, {
+      method: "DELETE",
+    });
+    setTodos(prevState => prevState.filter(todo => todo.id !== id));
+  }
+
+  if (loading) {
+    return <p>Carregando...</p>
   }
   return (
     <div className="App">
@@ -75,6 +126,19 @@ function App() {
         <p>Lista</p>
         <h2>Lista de Tarefas</h2>
         {todos.length === 0 && <p>Não há tarefas</p>}
+        {todos.map(todo => (
+          <div className="todo" key={todo.id}>
+            <h3 className={todo.done ? "todo-done" : ""}>{todo.title}</h3>
+            <p>Duração: {todo.time}</p>
+            <div className="actions">
+              <span onClick={() => handleEdit(todo)}>
+                {!todo.done ? <BsBookmarkCheck /> : <BsBookmarkCheckFill />}
+              </span>
+              <BsTrash onClick={() => handleDelete(todo.id)} />
+            </div>
+          </div>
+        ))}
+
       </div>
     </div>
   );
